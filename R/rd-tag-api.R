@@ -133,16 +133,47 @@ format.usage_tag <- function(x, ...) {
 
 #' @export
 format.param_tag <- function(x, ..., wrap = TRUE) {
-  names <- names(x$values)
-  dups <- duplicated(names)
-
-  items <- paste0("\\item{", names, "}{", x$values, "}", collapse = "\n\n")
+  items <- get_items(x)
   if (wrap) {
     items <- str_wrap(items, width = 60, exdent = 2, indent = 2)
   }
 
   rd_tag("arguments", items, space = TRUE)
 }
+
+#' @export
+format.value_tag <- function(x, ..., wrap = TRUE) {
+  # general description of return value
+  names <- names(x$values)
+  if(is.null(names)) {
+    # no itemization
+    str <- x$values
+  } else {
+    # extract general description first
+    general <- names == ""
+    str <- x$values[general]
+    # additional list components
+    x$values <- x$values[!general]
+    if (length(x$values) > 0) {
+      items <- get_items(x)
+      str <- paste0(c(str, items), collapse = "\n\n")
+    }
+  }
+  # return tag
+  if (wrap) {
+    str <- str_wrap(str, width = 60, exdent = 2, indent = 2)
+  }
+  rd_tag(x$tag, str, space = TRUE)
+}
+
+get_items <- function(x, check = FALSE) {
+  names <- names(x$values)
+  dups <- duplicated(names)
+
+  paste0("\\item{", names, "}{", x$values, "}", collapse = "\n\n")
+}
+
+
 
 #' @export
 format.section_tag <- function(x, ..., wrap = TRUE) {

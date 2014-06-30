@@ -15,6 +15,7 @@ register.preref.parsers(parse.value,
                         'example',
                         'keywords',
                         'return',
+                        'returnClass',
                         'author',
                         'section',
                         'family',
@@ -33,7 +34,8 @@ register.preref.parsers(parse.name.description,
                         'slot',
                         'field',
                         'method',
-                        'describeIn')
+                        'describeIn',
+                        'returnItem')
 
 register.preref.parsers(parse.name,
                         'docType')
@@ -144,9 +146,7 @@ roclet_rd_one <- function(partitum, base_path, env) {
   add_tag(rd, process_had_tag(partitum, 'seealso'))
   add_tag(rd, process_had_tag(partitum, "references"))
   add_tag(rd, process_had_tag(partitum, 'concept'))
-  add_tag(rd, process_had_tag(partitum, 'return', function(tag, param) {
-      new_tag("value", param)
-    }))
+  add_tag(rd, process_return(partitum))
   add_tag(rd, process_had_tag(partitum, 'keywords', function(tag, param, all, rd) {
       new_tag("keyword", str_split(str_trim(param), "\\s+")[[1]])
     }))
@@ -257,6 +257,33 @@ process_methods <- function(block) {
   usage <- usage[has_docs]
 
   new_tag("rcmethods", setNames(desc, usage))
+}
+
+
+process_return <- function(partitum) {
+  # general description of return value
+  ret <- unlist(partitum[names(partitum) == "return"], use.names=FALSE)
+  # list or class of return value, and additional list components
+  retClass <- unlist(partitum[names(partitum) == "returnClass"], use.names=FALSE)
+  retItems <- partitum[names(partitum) == "returnItem"]
+  if (length(ret) == 0) {
+    # general description overrides 'returnList' or 'returnClass'
+    if (length(retClass) > 0) {
+      ret <- paste("An object of class \\code{\"", retClass, "\"}", sep="")
+    }
+    if (length(ret) > 0) {
+      ret <- paste(ret, if (length(retItems) > 0) " with the following components:" else ".", sep="")
+    }
+  }
+  if (length(retItems) > 0) {
+    # add list components
+    desc <- str_trim(sapply(retItems, "[[", "description"))
+    names(desc) <- sapply(retItems, "[[", "name")
+    ret <- c(ret, desc)
+  }
+  # return nothing if there were no matches for keywords, otherwise value tag
+  if (length(ret) == 0) return()
+  new_tag("value", ret)
 }
 
 
